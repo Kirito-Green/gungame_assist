@@ -46,4 +46,5 @@ if __name__ == "__main__":
 	# driver.move_R(500, None)
 	# linear_interpolation(200, 200, num_steps=20, delay=0.01)
 	time.sleep(3)
-	driver.move_R(960, None)
+	# driver.move_R(890, None)
+	driver.move_R(None, -592)

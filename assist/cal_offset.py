@@ -118,8 +118,8 @@ def cal_3d_distance(dx, dy):
 		theta = angle2radian(fov / 2)  # 弧度
 		d = length / math.tan(theta)
 		return math.atan(dx / d) / theta * length
-	dx_3d = cal_distance(dx, screen_center_width, hfov)
-	dy_3d = cal_distance(dy, screen_center_height, vfov)
+	dx_3d = hcomp * cal_distance(dx, screen_center_width, hfov)
+	dy_3d = vcomp * cal_distance(dy, screen_center_height, vfov)
 	return int(dx_3d), int(dy_3d)
 
 
@@ -137,6 +137,10 @@ def cal_dfov(hfov, vfov): # in angle
 	return radian2angle(2 * math.atan(math.sqrt(math.pow(math.tan(hfov_radian / 2.0), 2.0) + math.pow(math.tan(vfov_radian / 2.0), 2.0))))
 
 
+def cal_vfov_from_hfov(hfov): # in angle
+	return radian2angle(2 * math.atan(1 / screen_size * math.tan(angle2radian(hfov) / 2)))
+
+
 if __name__ == "__main__":
 	# img1 = cv2.imread("../imgs/img1.png")
 	# img2 = cv2.imread("../imgs/img2.png")
@@ -144,4 +148,5 @@ if __name__ == "__main__":
 	# print(distance)
 	# print(cal_3d_distance(300, 150))
 	# print(cal_hvfov(90))
-	print(cal_dfov(hfov, vfov))
+	# print(cal_dfov(hfov, vfov))
+	print(cal_vfov_from_hfov(95))
