@@ -113,7 +113,7 @@ def radian2angle(radian):
 	return radian / math.pi * 180.0
 
 
-def cal_3d_distance(dx, dy):
+def cal_3d_distance(dx, dy): # TODO 考虑视角偏差
 	def cal_distance(dx, length, fov):
 		theta = angle2radian(fov / 2)  # 弧度
 		d = length / math.tan(theta)
