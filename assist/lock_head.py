@@ -17,16 +17,14 @@ from demo import get_head_pos
 from screenshot import get_screenshot
 from lghub import *
 from cal_offset import cal_3d_distance
+from util import delay_ms
 
 ctl = pk.Controller()
 mouse = pm.Controller()
 
-mouse_pos = (0, 0)
-
 
 def on_move(x, y):
-	global mouse_pos
-	mouse_pos = (x, y)
+	pass
 
 
 # print('Pointer moved to {0}'.format(mouse_pos))
@@ -43,9 +41,9 @@ def on_click(x, y, button, pressed):
 			listener_pm.stop()
 			listener_pk.stop()
 		elif button == Button.left:
-			with ctl.pressed( # 快速标记
-			        key_fastmark):
-			    pass
+			# with ctl.pressed( # 快速标记
+			#         key_fastmark):
+			#     pass
 
 			lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
 			if lock_state:
@@ -57,21 +55,33 @@ def on_click(x, y, button, pressed):
 
 
 key_list = [Key.up, Key.down, Key.left, Key.right, Key.enter]
+
+
 def on_press(key):
 	global gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second
 	if hasattr(key, 'char') and key.char == lock_head:  # 侧上键锁头并开枪
-		img = get_screenshot(width, height)
-		person_pos = get_head_pos(img)
+		start = time.time()
+		img = get_screenshot(width, height)  # 100us
+		end = time.time()
+		print('screenshot time:', end - start)
+		start = time.time()
+		person_pos = get_head_pos(img)  # gpu 空载 20ms 负载 30ms
+		end = time.time()
+		print('interface time:', end - start)
 		if len(person_pos) > 0:  # 1 17 3
-			for head_pos in person_pos[0][0:3]:  # nose eyes
+			for head_pos in person_pos[0][0:5]:  # nose eyes ears
 				if head_pos[2] >= score_thres:  # y x
 					head_x = int(x0 + head_pos[1] * width)
 					head_y = int(y0 + head_pos[0] * height)
 					dx_3d, dy_3d = cal_3d_distance(head_x - screen_center_width, head_y - screen_center_height)
+					start = time.time()
 					driver.move_R(dx_3d, dy_3d)
-					time.sleep(0.05)
-					driver.click_Left_down()
-					driver.click_Left_up()
+					delay_ms(10)  # TODO 优化
+					# driver.click_Left_down()
+					# driver.click_Left_up()
+					mouse.click(Button.left, 1)
+					end = time.time()
+					print('calculate pos time:', end - start)
 					break
 
 	if hasattr(key, 'char') and key.char == open_scope_and_lock_head:  # 侧下键开镜锁头并开枪
@@ -145,21 +155,30 @@ def force_ctrl_thread():
 	while True:
 		# 无模型固定参数控制
 		lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
-		if lock_state and flag_ctrl:
+		if lock_state and flag_ctrl and 'pubg' in gun_game:
 			if gun_state == 0:
 				driver.move_R(None, comp_dist_first * scope_list[scope_state_first])
 			elif gun_state == 1:
 				driver.move_R(None, comp_dist_second * scope_list[scope_state_second])
-		time.sleep(force_delay)
+			time.sleep(force_delay)
 
-	# 反馈控制
-	# lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
-	# if lock_state and flag_ctrl:
-	#     global mouse_pos
-	#     x, y = mouse_pos # 当前位置
-	#     print(x, y)
-	#     driver.move_R(screen_center_width - x, screen_center_height - y)
-	#     time.sleep(force_delay)
+		# 自动锁头开枪
+		elif lock_state:
+			img = get_screenshot(width, height)  # 100us
+			person_pos = get_head_pos(img)  # gpu 空载 20ms 负载 30ms
+			if len(person_pos) > 0:  # 1 17 3
+				for head_pos in person_pos[0][0:5]:  # nose eyes ears
+					if head_pos[2] >= score_thres:  # y x
+						head_x = int(x0 + head_pos[1] * width)
+						head_y = int(y0 + head_pos[0] * height)
+						dx_3d, dy_3d = cal_3d_distance(head_x - screen_center_width, head_y - screen_center_height)
+						driver.move_R(dx_3d, dy_3d)
+						delay_ms(10)
+						mouse.click(Button.left, 1)
+						break
+
+		if not lock_state:
+			time.sleep(0.1) # 程序待机
 
 
 if __name__ == "__main__":
