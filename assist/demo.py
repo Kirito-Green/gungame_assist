@@ -171,7 +171,8 @@ def get_head_pos(img):
   # 0.3是置信度阈值
   loop_through_people(img, keypoints_with_scores, EDGES, 0.3)
   # 显示处理后的帧（可选）
-  cv2.imshow('MoveNet Pose Estimation', img)
+  show_img = cv2.resize(img, (800, 800))
+  cv2.imshow('MoveNet Pose Estimation', show_img)
   cv2.waitKey(1)
 
   return keypoints_with_scores[0]

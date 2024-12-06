@@ -72,7 +72,8 @@ def on_press(key):
 						delay_ms(10)  # TODO 优化
 						# driver.click_Left_down()
 						# driver.click_Left_up()
-						mouse.click(Button.left, 1)
+						# mouse.click(Button.left, 1)
+						print(person_pos)
 						break
 
 	if hasattr(key, 'char') and key.char == open_scope_and_lock_head:  # 侧下键开镜锁头并开枪
