@@ -110,40 +110,41 @@ def on_press(key):
 					'1'):
 				pass
 
-	elif key == Key.up:
-		if gun_state == 0:
-			comp_dist_first += comp_ctrl_sens
-		elif gun_state == 1:
-			comp_dist_second += comp_ctrl_sens
-	elif key == Key.down:
-		if gun_state == 0:
-			comp_dist_first = max(0, comp_dist_first - 1)
-		elif gun_state == 1:
-			comp_dist_second = max(0, comp_dist_second - 1)
-	elif key == Key.left:  # 减小倍镜
-		if gun_state == 0:
-			scope_state_first = (scope_state_first - 1 + len(scope_list)) % len(scope_list)
-		elif gun_state == 1:
-			scope_state_second = (scope_state_second - 1 + len(scope_list)) % len(scope_list)
-	elif key == Key.right:  #
-		if gun_state == 0:
-			scope_state_first = (scope_state_first + 1) % len(scope_list)
-		elif gun_state == 1:
-			scope_state_second = (scope_state_second + 1) % len(scope_list)
-	elif key == Key.enter: # 切换武器压枪补偿量
-		gun_state = not gun_state
-	elif key == Key.end:
-		mouse.position = (screen_center_width, screen_center_height) # 鼠标校准
+	if 'pubg' in gun_game:
+		if key == Key.up:
+			if gun_state == 0:
+				comp_dist_first += comp_ctrl_sens
+			elif gun_state == 1:
+				comp_dist_second += comp_ctrl_sens
+		elif key == Key.down:
+			if gun_state == 0:
+				comp_dist_first = max(0, comp_dist_first - 1)
+			elif gun_state == 1:
+				comp_dist_second = max(0, comp_dist_second - 1)
+		elif key == Key.left:  # 减小倍镜
+			if gun_state == 0:
+				scope_state_first = (scope_state_first - 1 + len(scope_list)) % len(scope_list)
+			elif gun_state == 1:
+				scope_state_second = (scope_state_second - 1 + len(scope_list)) % len(scope_list)
+		elif key == Key.right:  #
+			if gun_state == 0:
+				scope_state_first = (scope_state_first + 1) % len(scope_list)
+			elif gun_state == 1:
+				scope_state_second = (scope_state_second + 1) % len(scope_list)
+		elif key == Key.enter: # 切换武器压枪补偿量
+			gun_state = not gun_state
+		elif key == Key.end:
+			mouse.position = (screen_center_width, screen_center_height) # 鼠标校准
 
-	if key in key_list:
-		if gun_state == 0:
-			print('comp first:', comp_dist_first,
-			      'scope:', scope_list[scope_state_first],
-			      'comp value:', comp_dist_first * scope_list[scope_state_first] / force_delay, '/s')
-		elif gun_state == 1:
-			print('comp second:', comp_dist_second,
-			      'scope:', scope_list[scope_state_second],
-			      'comp value:', comp_dist_second * scope_list[scope_state_second] / force_delay, '/s')
+		if key in key_list:
+			if gun_state == 0:
+				print('comp first:', comp_dist_first,
+				      'scope:', scope_list[scope_state_first],
+				      'comp value:', comp_dist_first * scope_list[scope_state_first] / force_delay, '/s')
+			elif gun_state == 1:
+				print('comp second:', comp_dist_second,
+				      'scope:', scope_list[scope_state_second],
+				      'comp value:', comp_dist_second * scope_list[scope_state_second] / force_delay, '/s')
 
 
 
@@ -158,12 +159,13 @@ def force_ctrl_thread():
 	while True:
 		# 无模型固定参数控制
 		lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
-		if lock_state and flag_ctrl and 'pubg' in gun_game:
-			if gun_state == 0:
-				driver.move_R(None, comp_dist_first * scope_list[scope_state_first])
-			elif gun_state == 1:
-				driver.move_R(None, comp_dist_second * scope_list[scope_state_second])
-			time.sleep(force_delay)
+		if 'pubg' in gun_game:
+			if lock_state and flag_ctrl and 'pubg' in gun_game:
+				if gun_state == 0:
+					driver.move_R(None, comp_dist_first * scope_list[scope_state_first])
+				elif gun_state == 1:
+					driver.move_R(None, comp_dist_second * scope_list[scope_state_second])
+				time.sleep(force_delay)
 
 		# 自动锁头开枪
 		elif lock_state:
@@ -186,10 +188,11 @@ def force_ctrl_thread():
 
 
 if __name__ == "__main__":
+	if 'pubg' in gun_game:
 	print('-----------pubg assist is started------------')
-	print('comp first:', comp_dist_first,
-	      'scope:', scope_list[scope_state_first],
-	      'comp value:', comp_dist_first * scope_list[scope_state_first] / force_delay, '/s')
+		print('comp first:', comp_dist_first,
+		      'scope:', scope_list[scope_state_first],
+		      'comp value:', comp_dist_first * scope_list[scope_state_first] / force_delay, '/s')
 
 	t = threading.Thread(target=force_ctrl_thread)
 	t.daemon = True
