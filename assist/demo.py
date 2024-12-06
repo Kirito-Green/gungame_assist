@@ -4,6 +4,9 @@ import cv2
 import numpy as np
 import os
 
+from config import *
+
+
 # 加载 MoveNet 模型
 # model_name = "movenet_lightning"
 model_name = "movenet_thunder"
@@ -53,7 +56,7 @@ def draw_keypoints(frame, keypoints, confidence_threshold):
   for kp in shaped:
     ky, kx, kp_conf = kp
     if kp_conf > confidence_threshold:
-      cv2.circle(frame, (int(kx), int(ky)), 4, (0, 255, 0), -1)
+      cv2.circle(frame, (int(kx), int(ky)), 2, (0, 255, 0), -1)
 
 def loop_through_people(frame, keypoints_with_scores, edges, confidence_threshold):
   for person in keypoints_with_scores:
@@ -139,7 +142,7 @@ def process_webcam():
     keypoints_with_scores = results['output_0'].numpy()
 
     # 绘制关键点和连接
-    loop_through_people(frame, keypoints_with_scores, EDGES, 0.3)
+    loop_through_people(frame, keypoints_with_scores, EDGES, img_score_thres)
 
     # 显示处理后的帧
     cv2.imshow('MoveNet Pose Estimation (Webcam)', frame)
@@ -150,7 +153,7 @@ def process_webcam():
   cv2.destroyAllWindows()
 
 
-def get_head_pos(img):
+def get_person_pos(img):
   # 预处理帧
   # 调整图像大小为MoveNet模型的输入尺寸(192x192)
   input_image = cv2.resize(img, (input_size, input_size))
@@ -168,14 +171,21 @@ def get_head_pos(img):
 
   # 在帧上绘制关键点和连接
   # EDGES是预定义的关键点连接关系
-  # 0.3是置信度阈值
-  loop_through_people(img, keypoints_with_scores, EDGES, 0.3)
   # 显示处理后的帧（可选）
-  show_img = cv2.resize(img, (800, 800))
-  cv2.imshow('MoveNet Pose Estimation', show_img)
+  loop_through_people(img, keypoints_with_scores, EDGES, img_score_thres)
+  img = cv2.resize(img, (800, 800))
+  cv2.imshow('MoveNet Pose Estimation', img)
   cv2.waitKey(1)
 
   return keypoints_with_scores[0]
+
+
+def is_person(keypoints):
+  cnt = 0
+  for pos in keypoints:
+    if pos[2] >= score_thres:
+      cnt += 1
+  return cnt >= num_person_thres
 
 
 # 主程序
@@ -184,7 +194,7 @@ if __name__ == "__main__":
   input_video = r"D:\learn_more_from_life\computer\Python\Deep_learning\opensource\Vision\data\video\pubg1.mp4"
   output_video = "../output/output.mp4"
   img = cv2.imread("../imgs/test.png")
-  get_head_pos(img)
+  get_person_pos(img)
   cv2.waitKey(0)
   # process_video(input_video, output_video)
   # print(f"处理完成。输出视频保存在: {output_video}")

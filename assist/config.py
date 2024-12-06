@@ -24,11 +24,19 @@ screen_center_width = int(screen_width / 2)
 screen_center_height = int(screen_height / 2)
 width = 256
 height = 256
+screen_detect_width_half = int(width / 2)
+screen_detect_height_half = int(height / 2)
 x0 = int(screen_center_width - width / 2)
 y0 = int(screen_center_height - height / 2)
 
 # 阈值
-score_thres = 0.5
+score_thres = 0.4
+img_score_thres = 0.1
+dist_thres = 15
+num_person_thres = 6
+
+# 单发
+min_shoot_gap = 0.01
 
 # 压枪
 comp_dist_first = 4
@@ -39,3 +47,8 @@ force_delay = 0.01
 scope_state_first = 0
 scope_state_second = 0
 scope_list = [1, 2, 3, 4, 6, 8, 15]
+
+# PID参数
+Kp = 0.9
+Ki = 0
+Kd = 0.1

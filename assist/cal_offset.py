@@ -113,13 +113,17 @@ def radian2angle(radian):
 	return radian / math.pi * 180.0
 
 
-def cal_3d_distance(dx, dy): # TODO 考虑视角偏差
-	def cal_distance(dx, length, fov):
+def cal_2d_dist(p1, p2):
+	return math.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]))
+
+
+def cal_3d_dist(dx, dy): # TODO 考虑视角偏差
+	def cal_dist(dx, length, fov):
 		theta = angle2radian(fov / 2)  # 弧度
 		d = length / math.tan(theta)
 		return math.atan(dx / d) / theta * length
-	dx_3d = hcomp * cal_distance(dx, screen_center_width, hfov)
-	dy_3d = vcomp * cal_distance(dy, screen_center_height, vfov)
+	dx_3d = hcomp * cal_dist(dx, screen_center_width, hfov)
+	dy_3d = vcomp * cal_dist(dy, screen_center_height, vfov)
 	return int(dx_3d), int(dy_3d)
 
 
@@ -139,6 +143,20 @@ def cal_dfov(hfov, vfov): # in angle
 
 def cal_vfov_from_hfov(hfov): # in angle
 	return radian2angle(2 * math.atan(1 / screen_size * math.tan(angle2radian(hfov) / 2)))
+
+
+def is_at_head(keypoints):
+  nose = keypoints[0][0:2]
+  nose = np.array([nose[1] * width, nose[0] * height])
+  left_ear = keypoints[3][0:2]
+  left_ear = np.array([left_ear[1] * width, left_ear[0] * height])
+  right_ear = keypoints[4][0:2]
+  right_ear = np.array([right_ear[1] * width, right_ear[0] * height])
+  center = (left_ear + right_ear) / 2
+  # radius = min(cal_2d_dist(nose, left_ear), cal_2d_dist(nose, right_ear))
+  radius = max(cal_2d_dist(left_ear, right_ear) / 2, (cal_2d_dist(left_ear, nose) + cal_2d_dist(right_ear, nose)) / 2)
+  # print('pos', nose, left_ear, right_ear, center)
+  return cal_2d_dist(center, (width / 2, height / 2)) < radius
 
 
 if __name__ == "__main__":
