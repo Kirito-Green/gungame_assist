@@ -117,13 +117,30 @@ def cal_2d_dist(p1, p2):
 	return math.sqrt((p1[0] - p2[0]) * (p1[0] - p2[0]) + (p1[1] - p2[1]) * (p1[1] - p2[1]))
 
 
-def cal_3d_dist(dx, dy): # TODO 考虑视角偏差
-	def cal_dist(dx, length, fov):
+def cal_3d_dist_special(dx, dy):
+	def cal_mouse_dist(dx, length, fov, comp):
 		theta = angle2radian(fov / 2)  # 弧度
 		d = length / math.tan(theta)
-		return math.atan(dx / d) / theta * length
-	dx_3d = hcomp * cal_dist(dx, screen_center_width, hfov)
-	dy_3d = vcomp * cal_dist(dy, screen_center_height, vfov)
+		return math.atan(dx / d) / theta * length * comp
+
+	dx_3d = cal_mouse_dist(dx, screen_center_width, hfov, hcomp)
+	dy_3d = vcomp * cal_mouse_dist(dy, screen_center_height, vfov, vcomp)
+	return int(dx_3d), int(dy_3d)
+
+
+def cal_3d_dist(mouse_pos, dx, dy):  # 考虑视角偏差
+	vfov_half = angle2radian(vfov / 2)  # 弧度
+	d = screen_center_height / math.tan(vfov_half)
+	alpha = mouse_pos[1] / (vcomp * screen_center_height) * vfov / 2 # 下正上负
+	alpha_radian = angle2radian(alpha)
+	x, y, z = d, dx, -dy
+	x_, y_, z_ = d * math.cos(alpha_radian) - dy * math.sin(alpha_radian), dx, -d * math.sin(alpha_radian) - dy * math.cos(alpha_radian)
+	r = d / math.cos(angle2radian(dfov / 2))
+	phi = radian2angle(math.asin(-z_ / r))
+	theta = radian2angle(math.atan(y_ / x_))
+	dx_3d = theta / (hfov / 2) * screen_center_width * hcomp
+	dy_3d = (phi - alpha) / (vfov / 2) * screen_center_height * vcomp
+	print(dx_3d, dy_3d)
 	return int(dx_3d), int(dy_3d)
 
 
@@ -164,7 +181,8 @@ if __name__ == "__main__":
 	# img2 = cv2.imread("../imgs/img2.png")
 	# distance = get_distance(img1, img2)
 	# print(distance)
-	# print(cal_3d_distance(300, 150))
+	cal_3d_dist([0, 0], 540, 0)
 	# print(cal_hvfov(90))
 	# print(cal_dfov(hfov, vfov))
-	print(cal_vfov_from_hfov(95))
+	# print(cal_vfov_from_hfov(95))
+	# print(cal_dfov(hfov, vfov))

@@ -1,13 +1,14 @@
 import enum
 
 # 游戏参数
-key_fastmark = '-'  # 快速标记按键
-lock_head = '-'  # 锁头
-open_scope_and_lock_head = '=' # 开镜并锁头
+key_fastmark = 'p'  # 快速标记按键
+lock_head = 'p'  # 锁头
+open_scope_and_lock_head = 'o' # 开镜并锁头
 gun_game = 'csgo'
 if 'csgo' in gun_game:
 	hfov = 106.260205
 	vfov = 73.739795
+	dfov = 113.65618288622655
 	hcomp = 1
 	vcomp = 666 / 540
 elif 'pubg' in gun_game:
@@ -17,8 +18,10 @@ elif 'pubg' in gun_game:
 	vcomp = 592 / 540
 
 # 屏幕参数
-screen_width = 1920
-screen_height = 1080
+# screen_width = 1920
+# screen_height = 1080
+screen_width = 1280
+screen_height = 960
 screen_size = screen_width / screen_height
 screen_center_width = int(screen_width / 2)
 screen_center_height = int(screen_height / 2)
@@ -32,11 +35,12 @@ y0 = int(screen_center_height - height / 2)
 # 阈值
 score_thres = 0.4
 img_score_thres = 0.1
-dist_thres = 15
+dist_thres = 4
 num_person_thres = 6
 
 # 单发
-min_shoot_gap = 0.01
+min_shoot_gap = 0.15
+num_iter = 3
 
 # 压枪
 comp_dist_first = 4
@@ -49,6 +53,11 @@ scope_state_second = 0
 scope_list = [1, 2, 3, 4, 6, 8, 15]
 
 # PID参数
-Kp = 0.9
-Ki = 0
-Kd = 0.1
+global Kp, Ki, Kd
+Kp = 0.5
+Ki = 0.06
+Kd = 0.001
+
+
+# 键控参数
+key_ctrl_sens = 100

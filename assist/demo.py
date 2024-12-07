@@ -2,7 +2,6 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import cv2
 import numpy as np
-import os
 
 from config import *
 
@@ -155,10 +154,10 @@ def process_webcam():
 
 def get_person_pos(img):
   # 预处理帧
-  # 调整图像大小为MoveNet模型的输入尺寸(192x192)
-  input_image = cv2.resize(img, (input_size, input_size))
+  # 调整图像大小为MoveNet模型的输入尺寸(256x256)
+  # input_image = cv2.resize(img, (input_size, input_size))
   # 将颜色空间从BGR转换为RGB
-  input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
+  input_image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
   # 将图像转换为TensorFlow张量，并设置数据类型为int32
   input_image = tf.cast(input_image, dtype=tf.int32)
   # 添加批次维度
@@ -193,9 +192,10 @@ if __name__ == "__main__":
   #使用时替换文件地址
   input_video = r"D:\learn_more_from_life\computer\Python\Deep_learning\opensource\Vision\data\video\pubg1.mp4"
   output_video = "../output/output.mp4"
-  img = cv2.imread("../imgs/test.png")
+  # img = cv2.imread("../imgs/test.png")
+  img = get_screenshot(input_size, input_size)
   get_person_pos(img)
-  cv2.waitKey(0)
+  cv2.waitKey(1)
   # process_video(input_video, output_video)
   # print(f"处理完成。输出视频保存在: {output_video}")
   #使用摄像头，取消下面这行的注释

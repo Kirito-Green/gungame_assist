@@ -22,14 +22,7 @@ from util import delay_ms
 ctl = pk.Controller()
 mouse = pm.Controller()
 
-
-def on_move(x, y):
-	# print('Pointer moved to {0}'.format(mouse_pos))
-	# print('mouse', mouse.position)
-	# print(pyautogui.position())
-	# mouse_pos = win32api.GetCursorPos()
-	# print(mouse_pos)
-	pass
+mouse_pos = [0, 0]
 
 
 flag_ctrl = 0
@@ -54,17 +47,13 @@ def on_click(x, y, button, pressed):
 			flag_ctrl = 0
 
 
-key_list = [Key.up, Key.down, Key.left, Key.right, Key.enter]
+key_list = [Key.up, Key.down, Key.left, Key.right, Key.home]
 
-shoot_time = time.time()
-shoot_start = 0
 shoot_scope_start = 0
 
-
 def on_press(key):
-	global gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second, \
-		shoot_time, shoot_start, shoot_scope_start
-	if hasattr(key, 'char') and key.char == lock_head:  # 侧上键锁头并开枪
+	global gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second, mouse_pos
+	if key == Key.end:  # 侧上键锁头并开枪
 		img = get_screenshot(width, height)  # 5ms
 		if img is not None:
 			keypoints = get_person_pos(img)  # gpu 30ms
@@ -74,34 +63,14 @@ def on_press(key):
 				target_detect_x = target_pos[1] * width
 				target_detect_y = target_pos[0] * height
 				print('lock target [{}, {}]'.format(int(target_detect_x), int(target_detect_y)))
-				# 迭代收敛测试
-				# dx_3d, dy_3d = cal_3d_dist(Kp * (target_detect_x - screen_detect_width_half), Kp * (target_detect_y - screen_detect_height_half))
-				# dx_3d, dy_3d = int(Kp * (target_detect_x - screen_detect_width_half)), int(Kp * (target_detect_y - screen_detect_height_half))
-				# time.sleep(0.05)
-
-				if cal_2d_dist((target_detect_x, target_detect_y), (screen_detect_width_half, screen_detect_height_half)) <= dist_thres:  # 距离近不近
-					# if is_at_head(keypoints):
-					# with ctl.pressed(Key.ctrl): # 急停
-					# 	pass
-						if time.time() - shoot_time >= min_shoot_gap:
-							shoot_time = time.time()
-							mouse.click(Button.left, 1)
-							# print('shoot')
-				else:
-					# if not shoot_start:
-					# 	shoot_start = 1
-					# 	dx_3d, dy_3d = cal_3d_dist(target_detect_x - screen_detect_width_half, target_detect_y - screen_detect_height_half) # 模型计算值
-					# else:
-					# 	dx_3d, dy_3d = int(move_sens * (target_detect_x - screen_detect_width_half)), int(move_sens * (target_detect_y - screen_detect_height_half))
-					# driver.move_R(dx_3d, dy_3d)
-					if not shoot_start:
-						shoot_start = 1
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]), reset=1)
-					else:
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]))
-						driver.move_R(dx_3d, dy_3d)
+				# 模型计算
+				dx_3d, dy_3d = cal_3d_dist(mouse_pos,
+				                           target_detect_x - screen_detect_width_half,
+				                           target_detect_y - screen_detect_height_half)  # 模型计算值
+				driver.move_R(dx_3d, dy_3d)
+				# mouse.click(Button.left, 1)
+				mouse_pos[0] += dx_3d
+				mouse_pos[1] += dy_3d
 
 	if hasattr(key, 'char') and key.char == open_scope_and_lock_head:  # 侧下键开镜锁头并开枪
 		if not shoot_scope_start:
@@ -116,30 +85,33 @@ def on_press(key):
 				target_detect_x = target_pos[1] * width
 				target_detect_y = target_pos[0] * height
 				print('lock target [{}, {}]'.format(int(target_detect_x), int(target_detect_y)))
-				# 迭代收敛
-				if cal_2d_dist((target_detect_x, target_detect_y), (screen_detect_width_half, screen_detect_height_half)) <= dist_thres:  # 距离近不近
-					# if is_at_head(keypoints):
-					# with ctl.pressed(Key.ctrl): # 急停
-					# 	pass
-					mouse.click(Button.left, 1)
-					# print('shoot')
-				else:
-					# if not shoot_start:
-					# 	shoot_start = 1
-					# 	dx_3d, dy_3d = cal_3d_dist(target_detect_x - screen_detect_width_half, target_detect_y - screen_detect_height_half) # 模型计算值
-					# else:
-					# 	dx_3d, dy_3d = int(move_sens * (target_detect_x - screen_detect_width_half)), int(move_sens * (target_detect_y - screen_detect_height_half))
-					# driver.move_R(dx_3d, dy_3d)
-					if not shoot_scope_start:
-						shoot_scope_start = 1
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]), reset=1)
-					else:
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]))
-						driver.move_R(dx_3d, dy_3d)
+				# 模型计算
+				dx_3d, dy_3d = cal_3d_dist(target_detect_x - screen_detect_width_half,
+				                           target_detect_y - screen_detect_height_half)  # 模型计算值
+				driver.move_R(dx_3d, dy_3d)
+				mouse.click(Button.left, 1)
 
-	if 'pubg' in gun_game:
+	if 'csgo' in gun_game: # 键控鼠标移动
+		if key == Key.up:
+			driver.move_R(None, -key_ctrl_sens)
+			mouse_pos[1] += -key_ctrl_sens
+		elif key == Key.down:
+			driver.move_R(None, key_ctrl_sens)
+			mouse_pos[1] += key_ctrl_sens
+		elif key == Key.left:
+			driver.move_R(-key_ctrl_sens, None)
+			mouse_pos[0] += -key_ctrl_sens
+		elif key == Key.right:
+			driver.move_R(key_ctrl_sens, None)
+			mouse_pos[0] += key_ctrl_sens
+		elif key == Key.home:
+			# mouse_pos = (screen_center_width, screen_center_height)  # 鼠标校准
+			mouse_pos = [0, 0]
+
+		if key in key_list:
+			print('mouse pos', mouse_pos)
+
+	elif 'pubg' in gun_game:
 		if key == Key.up:
 			if gun_state == 0:
 				comp_dist_first += comp_ctrl_sens
@@ -162,8 +134,6 @@ def on_press(key):
 				scope_state_second = (scope_state_second + 1) % len(scope_list)
 		elif key == Key.enter:  # 切换武器压枪补偿量
 			gun_state = not gun_state
-		elif key == Key.end:
-			mouse.position = (screen_center_width, screen_center_height)  # 鼠标校准
 
 		if key in key_list:
 			if gun_state == 0:
@@ -215,8 +185,6 @@ def force_ctrl_thread():
 						target_y = int(y0 + target_pos[0] * height)
 						dx_3d, dy_3d = cal_3d_dist(target_x - screen_detect_width_half, target_y - screen_detect_height_half)
 						driver.move_R(dx_3d, dy_3d)
-						# delay_ms(10)
-						# mouse.click(Button.left, 1)
 						break
 
 		if not lock_state:
@@ -241,7 +209,6 @@ if __name__ == "__main__":
 	listener_pk.start()
 
 	with pm.Listener(
-			on_move=on_move,
 			on_click=on_click
 	) as listener_pm:
 		listener_pm.join()

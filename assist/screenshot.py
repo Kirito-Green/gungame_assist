@@ -4,27 +4,25 @@ import time
 import pyautogui
 import mss
 import dxcam
+from config import *
 
-camera = dxcam.create(output_color="BGR")
+camera = dxcam.create(output_color="RGB")
 
 def get_screenshot(width, height):
-    width_max = 1920
-    height_max = 1080
-
-    # region = [int(width_max/2-width/2), int(height_max/2-height/2),
+    # region = [int(screen_width/2-width/2), int(screen_height/2-height/2),
     #           width, height]
     # img = pyautogui.screenshot(region=region) # 33.3ms
     # return cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
 
     # with mss.mss() as sct:
     #     # The screen part to capture
-    #     region = {'top': int(width_max/2-width/2), 'left': int(height_max/2-height/2), 'width': width, 'height': height}
+    #     region = {'top': int(screen_width/2-width/2), 'left': int(screen_height/2-height/2), 'width': width, 'height': height}
     #     # Grab the data
     #     img = np.asarray(sct.grab(region)) # 16.7ms
     # return img
 
-    region = [int(width_max / 2 - width / 2), int(height_max / 2 - height / 2),
-              int(width_max / 2 + width / 2), int(height_max / 2 + height / 2)]
+    region = [int(screen_width / 2 - width / 2), int(screen_height / 2 - height / 2),
+              int(screen_width / 2 + width / 2), int(screen_height / 2 + height / 2)]
     return camera.grab(region=region) # 70us
 
 
