@@ -124,7 +124,7 @@ def cal_3d_dist_special(dx, dy):
 		return math.atan(dx / d) / theta * length * comp
 
 	dx_3d = cal_mouse_dist(dx, screen_center_width, hfov, hcomp)
-	dy_3d = vcomp * cal_mouse_dist(dy, screen_center_height, vfov, vcomp)
+	dy_3d = cal_mouse_dist(dy, screen_center_height, vfov, vcomp)
 	return int(dx_3d), int(dy_3d)
 
 

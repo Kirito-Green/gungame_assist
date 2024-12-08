@@ -15,7 +15,7 @@ from pynput.mouse import Button
 from config import *
 from demo import get_person_pos, is_person
 from screenshot import get_screenshot
-from lghub import driver # mouse_move_PID
+from lghub import driver, mouse_move_PID
 from cal_offset import cal_2d_dist, cal_3d_dist_special, is_at_head
 from util import delay_ms
 
@@ -33,26 +33,10 @@ def on_move(x, y):
 
 
 flag_ctrl = 0
-
-ki = 0
-last_error = 0
-def mouse_move_PID(state, target, reset=0):
-	global ki, last_error, Kp, Ki, Kd
-	if reset:
-		ki = 0
-		last_error = 0
-	error = target - state
-	kp = Kp * error
-	ki += Ki * error
-	kd = Kd * (error - last_error)
-	last_error = error
-	res = kp + ki + kd
-	# print('PID', kp, ki, kd)
-	return int(res[0]), int(res[1])
-
+right_button = 0
 
 def on_click(x, y, button, pressed):
-	global flag_ctrl
+	global flag_ctrl, right_button
 	if pressed:
 		if button == Button.middle:
 			listener_pm.stop()
@@ -65,37 +49,89 @@ def on_click(x, y, button, pressed):
 			lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
 			if lock_state:
 				flag_ctrl = 1
+		elif button == Button.right:
+			right_button = 1
 	else:
 		if button == Button.left:
 			flag_ctrl = 0
+		elif button == Button.right:
+			right_button = 0
 
 
 def on_scroll(x, y, dx, dy):
-	global shoot_stop
-	if dy < 0:
+	global shoot_stop, gun_state, comp_dist_first, comp_dist_second
+	if dy < 0: # 滚轮向下
 		shoot_stop = 1
+	# 	if gun_state == 0:
+	# 		comp_dist_first += comp_ctrl_sens
+	# 	elif gun_state == 1:
+	# 		comp_dist_second += comp_ctrl_sens
+	# else:
+	# 	if gun_state == 0:
+	# 		comp_dist_first = max(0, comp_dist_first - 1)
+	# 	elif gun_state == 1:
+	# 		comp_dist_second = max(0, comp_dist_second - 1)
 
-key_list = [Key.up, Key.down, Key.left, Key.right, Key.enter]
+	if gun_state == 0:
+		print('comp first:', comp_dist_first,
+		      'scope:', scope_list[scope_state_first],
+		      'comp value:', comp_dist_first * scope_list[scope_state_first] / force_delay, '/s')
+	elif gun_state == 1:
+		print('comp second:', comp_dist_second,
+		      'scope:', scope_list[scope_state_second],
+		      'comp value:', comp_dist_second * scope_list[scope_state_second] / force_delay, '/s')
+
+key_list = [Key.up, Key.down, Key.left, Key.right, Key.end, pk.KeyCode.from_char('1'), pk.KeyCode.from_char('2')]
 
 shoot_time = time.time()
 shoot_start = 0
 shoot_stop = 0
 shoot_scope_start = 0
-num_steps = 0
 pid_index = 0
 
 def on_press(key):
 	global gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second, \
-		shoot_time, shoot_start, shoot_stop, shoot_scope_start, num_steps
+		shoot_time, shoot_start, shoot_stop, shoot_scope_start
 	if (hasattr(key, 'char') and key.char == lock_head) or str(key) == r"'\x10'":  # 和ctrl同时按下
 	# if (hasattr(key, 'char') and key.char == lock_head):  # 侧上键锁头并开枪
-		print('aim start')
-		shoot_stop = 0
-		while True:
-			if shoot_stop:
-				shoot_stop = 1
-				print('aim stop')
-				break
+		if 'csgo' in gun_game:
+			print('aim start')
+			shoot_stop = 0
+			while True:
+				if shoot_stop:
+					shoot_stop = 1
+					print('aim stop')
+					break
+				img = get_screenshot(width, height)  # 5ms
+				if img is not None:
+					keypoints = get_person_pos(img)  # gpu 30ms
+					keypoints = keypoints[0]  # one person
+					if is_person(keypoints):
+						target_pos = keypoints[0]  # head
+						target_detect_x = target_pos[1] * width
+						target_detect_y = target_pos[0] * height
+						print('lock target [{}, {}]'.format(int(target_detect_x), int(target_detect_y)))
+						if cal_2d_dist((target_detect_x, target_detect_y),
+						               (screen_detect_width_half, screen_detect_height_half)) <= dist_thres \
+								and time.time() - shoot_time > min_shoot_gap: # 距离近不近
+							# if is_at_head(keypoints):
+							# with ctl.pressed(Key.ctrl): # 急停
+							# 	pass
+							mouse.click(Button.left, 1)
+							shoot_time = time.time()
+						else:
+							dx = target_detect_x - screen_detect_width_half
+							dy = target_detect_y - screen_detect_height_half
+							dx_3d, dy_3d = cal_3d_dist_special(dx, dy)
+							# if not shoot_start:
+							# 	shoot_start = 1
+							# 	dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
+							# 	                              np.asarray([target_detect_x, target_detect_y]), reset=1)
+							# else:
+							# 	dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
+							# 	                              np.asarray([target_detect_x, target_detect_y]))
+							driver.move_R(dx_3d, dy_3d)
+		elif 'pubg' in gun_game:
 			img = get_screenshot(width, height)  # 5ms
 			if img is not None:
 				keypoints = get_person_pos(img)  # gpu 30ms
@@ -104,31 +140,14 @@ def on_press(key):
 					target_pos = keypoints[0]  # head
 					target_detect_x = target_pos[1] * width
 					target_detect_y = target_pos[0] * height
-					# print('lock target [{}, {}]'.format(int(target_detect_x), int(target_detect_y)))
-
-					num_steps += 1
-					if not shoot_start:
-						shoot_start = 1
-						dx = target_detect_x - screen_detect_width_half
-						dy = target_detect_y - screen_detect_height_half
-						# dx_3d, dy_3d = cal_3d_dist_special(dx, dy)
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]), reset=1)
-					else:
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]))
-						driver.move_R(dx_3d, dy_3d)
-
-					if cal_2d_dist((target_detect_x, target_detect_y),
-					               (screen_detect_width_half, screen_detect_height_half)) <= dist_thres \
-							and time.time() - shoot_time > min_shoot_gap:  # 距离近不近
-						# if num_steps >= num_iter and time.time() - shoot_time > min_shoot_gap:
-						num_steps = 0
-						# if is_at_head(keypoints):
-						# with ctl.pressed(Key.ctrl): # 急停
-						# 	pass
-						mouse.click(Button.left, 1)
-						shoot_time = time.time()
+					print('lock target [{}, {}]'.format(int(target_detect_x), int(target_detect_y)))
+					dx = target_detect_x - screen_detect_width_half
+					dy = target_detect_y - screen_detect_height_half
+					dx_3d, dy_3d = cal_3d_dist_special(dx, dy)
+					driver.move_R(dx_3d, dy_3d)
+					delay_ms(10)
+					mouse.click(Button.left, 1)
+					shoot_time = time.time()
 
 	if hasattr(key, 'char') and key.char == open_scope_and_lock_head:  # 侧下键开镜锁头并开枪
 		if not shoot_scope_start:
@@ -150,16 +169,18 @@ def on_press(key):
 					# with ctl.pressed(Key.ctrl): # 急停
 					# 	pass
 					mouse.click(Button.left, 1)
-				# print('shoot')
 				else:
-					if not shoot_scope_start:
-						shoot_scope_start = 1
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]), reset=1)
-					else:
-						dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
-						                              np.asarray([target_detect_x, target_detect_y]))
-						driver.move_R(dx_3d, dy_3d)
+					dx = target_detect_x - screen_detect_width_half
+					dy = target_detect_y - screen_detect_height_half
+					dx_3d, dy_3d = cal_3d_dist_special(dx, dy)
+						# if not shoot_scope_start:
+						# 	shoot_scope_start = 1
+					# 	dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
+					# 	                              np.asarray([target_detect_x, target_detect_y]), reset=1)
+					# else:
+					# 	dx_3d, dy_3d = mouse_move_PID(np.asarray([screen_detect_width_half, screen_detect_height_half]),
+					# 	                              np.asarray([target_detect_x, target_detect_y]))
+					driver.move_R(dx_3d, dy_3d)
 
 	if 'csgo' in gun_game:
 		global Kp, Ki, Kd, pid_index
@@ -205,10 +226,16 @@ def on_press(key):
 				scope_state_first = (scope_state_first + 1) % len(scope_list)
 			elif gun_state == 1:
 				scope_state_second = (scope_state_second + 1) % len(scope_list)
-		elif key == Key.enter:  # 切换武器压枪补偿量
-			gun_state = not gun_state
 		elif key == Key.end:
-			mouse.position = (screen_center_width, screen_center_height)  # 鼠标校准
+			gun_state = 0
+			comp_dist_first = 4
+			comp_dist_second = 4
+			scope_state_first = 0
+			scope_state_second = 0
+		elif key == pk.KeyCode.from_char('1'):
+			gun_state = 0
+		elif key == pk.KeyCode.from_char('2'):
+			gun_state = 1
 
 		if key in key_list:
 			if gun_state == 0:
@@ -237,31 +264,36 @@ def on_release(key):
 
 
 def force_ctrl_thread():
-	global flag_ctrl, gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second
+	global flag_ctrl, gun_state, comp_dist_first, comp_dist_second, scope_state_first, scope_state_second, right_button
 	while True:
 		# 无模型固定参数控制
 		lock_state = win32api.GetKeyState(win32con.VK_CAPITAL)  # 0 release 1 pressed
+		# right_button = win32api.GetKeyState(win32con.VK_APPS)
 		if 'pubg' in gun_game:
-			if lock_state and flag_ctrl and 'pubg' in gun_game:
+			if lock_state and right_button and flag_ctrl:
 				if gun_state == 0:
 					driver.move_R(None, comp_dist_first * scope_list[scope_state_first])
 				elif gun_state == 1:
 					driver.move_R(None, comp_dist_second * scope_list[scope_state_second])
 				time.sleep(force_delay)
+			else:
+				time.sleep(0.1) # 挂机
 
 		# 自动锁头
-		elif lock_state:
-			img = get_screenshot(width, height)  # 100us
-			if img is not None:
-				person_pos = get_person_pos(img)  # gpu 空载 20ms 负载 30ms
-				for target_pos in person_pos[0][0:5]:  # nose eyes ears
-					if target_pos[2] >= score_thres:  # y x
-						target_x = int(x0 + target_pos[1] * width)
-						target_y = int(y0 + target_pos[0] * height)
-						dx_3d, dy_3d = cal_3d_dist_special(target_x - screen_detect_width_half,
-						                                   target_y - screen_detect_height_half)
-						driver.move_R(dx_3d, dy_3d)
-						break
+		elif 'csgo' in gun_game:
+			if lock_state:
+				img = get_screenshot(width, height)  # 100us
+				if img is not None:
+					person_pos = get_person_pos(img)  # gpu 空载 20ms 负载 30ms
+					for target_pos in person_pos[0][0:5]:  # nose eyes ears
+						if target_pos[2] >= score_thres:  # y x
+							target_detect_x = target_pos[1] * width
+							target_detect_y = target_pos[0] * height
+							dx = target_detect_x - screen_detect_width_half
+							dy = target_detect_y - screen_detect_height_half
+							dx_3d, dy_3d = cal_3d_dist_special(dx, dy)
+							driver.move_R(dx_3d, dy_3d)
+							break
 
 		if not lock_state:
 			time.sleep(0.1)  # 程序待机

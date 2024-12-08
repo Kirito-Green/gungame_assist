@@ -49,19 +49,19 @@ ki = 0
 last_error = 0
 
 
-# def mouse_move_PID(state, target, reset=0):
-# 	global ki, last_error, Kp, Ki, Kd
-# 	if reset:
-# 		ki = 0
-# 		last_error = 0
-# 	error = target - state
-# 	kp = Kp * error
-# 	ki += Ki * error
-# 	kd = Kd * (error - last_error)
-# 	last_error = error
-# 	res = kp + ki + kd
-# 	# print('PID', kp, ki, kd)
-# 	return int(res[0]), int(res[1])
+def mouse_move_PID(state, target, reset=0):
+	global ki, last_error, Kp, Ki, Kd
+	if reset:
+		ki = 0
+		last_error = 0
+	error = target - state
+	kp = Kp * error
+	ki += Ki * error
+	kd = Kd * (error - last_error)
+	last_error = error
+	res = kp + ki + kd
+	# print('PID', kp, ki, kd)
+	return int(res[0]), int(res[1])
 
 
 if __name__ == "__main__":

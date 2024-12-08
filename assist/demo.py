@@ -151,13 +151,12 @@ def process_webcam():
   cap.release()
   cv2.destroyAllWindows()
 
-
 def get_person_pos(img):
   # 预处理帧
   # 调整图像大小为MoveNet模型的输入尺寸(256x256)
-  # input_image = cv2.resize(img, (input_size, input_size))
+  input_image = cv2.resize(img, (input_size, input_size))
   # 将颜色空间从BGR转换为RGB
-  input_image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+  input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
   # 将图像转换为TensorFlow张量，并设置数据类型为int32
   input_image = tf.cast(input_image, dtype=tf.int32)
   # 添加批次维度
